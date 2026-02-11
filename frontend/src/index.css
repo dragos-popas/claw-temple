@@ -1,0 +1,177 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --cyber-pink: #FF0055;
+  --cyber-cyan: #00F0FF;
+  --cyber-yellow: #FCEE0A;
+  --cyber-purple: #B829E6;
+  --cyber-green: #00FF66;
+  --cyber-red: #FF3333;
+  --cyber-dark: #0D0D0D;
+  --cyber-gray: #1A1A1A;
+}
+
+@layer base {
+  body {
+    @apply bg-cyber-black text-gray-100;
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-cyber-dark;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-cyber-gray rounded;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-cyber-light;
+  }
+}
+
+@layer components {
+  .cyber-card {
+    @apply bg-cyber-gray border border-cyber-gray rounded-lg p-4;
+  }
+
+  .cyber-card-hover {
+    @apply cyber-card transition-all duration-200 hover:border-cyber-pink hover:shadow-[0_0_10px_rgba(255,0,85,0.5)];
+  }
+
+  .cyber-button {
+    @apply px-4 py-2 rounded font-display font-semibold transition-all duration-200;
+    @apply bg-cyber-gray border border-cyber-gray text-gray-100;
+    @apply hover:border-cyber-pink hover:text-cyber-pink;
+    @apply active:scale-95;
+  }
+
+  .cyber-button-primary {
+    @apply cyber-button bg-cyber-pink border-cyber-pink text-white;
+    @apply hover:bg-cyber-pink/80 hover:shadow-[0_0_10px_rgba(255,0,85,0.5)];
+  }
+
+  .cyber-button-secondary {
+    @apply cyber-button bg-cyber-cyan/10 border-cyber-cyan text-cyber-cyan;
+    @apply hover:bg-cyber-cyan/20 hover:shadow-[0_0_10px_rgba(0,240,255,0.5)];
+  }
+
+  .cyber-input {
+    @apply w-full px-4 py-2 bg-cyber-dark border border-cyber-gray rounded;
+    @apply text-gray-100 placeholder-gray-500;
+    @apply focus:border-cyber-pink focus:outline-none focus:ring-1 focus:ring-cyber-pink;
+    @apply transition-all duration-200;
+  }
+
+  .cyber-select {
+    @apply cyber-input appearance-none cursor-pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23FF0055'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    background-size: 1.5em;
+  }
+
+  .cyber-badge {
+    @apply inline-flex items-center px-2 py-1 rounded text-xs font-mono;
+  }
+
+  .cyber-badge-pink {
+    @apply cyber-badge bg-cyber-pink/20 text-cyber-pink border border-cyber-pink/30;
+  }
+
+  .cyber-badge-cyan {
+    @apply cyber-badge bg-cyber-cyan/20 text-cyber-cyan border border-cyber-cyan/30;
+  }
+
+  .cyber-badge-yellow {
+    @apply cyber-badge bg-cyber-yellow/20 text-cyber-yellow border border-cyber-yellow/30;
+  }
+
+  .cyber-badge-green {
+    @apply cyber-badge bg-cyber-green/20 text-cyber-green border border-cyber-green/30;
+  }
+
+  .cyber-column {
+    @apply bg-cyber-dark/50 rounded-lg p-3 min-h-[400px];
+    @apply border border-cyber-gray/50;
+  }
+
+  .cyber-column-header {
+    @apply flex items-center justify-between mb-3 pb-2 border-b border-cyber-gray;
+  }
+
+  .cyber-task-card {
+    @apply cyber-card cursor-pointer;
+    @apply hover:border-cyber-pink hover:shadow-[0_0_10px_rgba(255,0,85,0.5)];
+    @apply transition-all duration-200;
+  }
+
+  .cyber-nav-item {
+    @apply flex items-center gap-3 px-4 py-3 text-gray-400;
+    @apply hover:text-cyber-pink hover:bg-cyber-gray/50;
+    @apply transition-all duration-200 cursor-pointer;
+  }
+
+  .cyber-nav-item-active {
+    @apply cyber-nav-item text-cyber-pink bg-cyber-gray/50 border-r-2 border-cyber-pink;
+  }
+
+  .cyber-stat-card {
+    @apply cyber-card text-center;
+  }
+
+  .cyber-stat-value {
+    @apply text-3xl font-display font-bold text-cyber-pink;
+  }
+
+  .cyber-stat-label {
+    @apply text-sm text-gray-400 mt-1;
+  }
+}
+
+@layer utilities {
+  .text-gradient-pink {
+    @apply bg-gradient-to-r from-cyber-pink to-cyber-purple bg-clip-text text-transparent;
+  }
+
+  .text-gradient-cyan {
+    @apply bg-gradient-to-r from-cyber-cyan to-cyber-green bg-clip-text text-transparent;
+  }
+
+  .border-glow-pink {
+    box-shadow: 0 0 10px rgba(255, 0, 85, 0.3);
+  }
+
+  .border-glow-cyan {
+    box-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
+  }
+}
+
+/* Scanline effect */
+.scanlines::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    to bottom,
+    transparent 50%,
+    rgba(0, 0, 0, 0.1) 50%
+  );
+  background-size: 100% 4px;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+/* Glitch effect on hover */
+.glitch-hover:hover {
+  animation: glitch 0.3s ease-in-out;
+}

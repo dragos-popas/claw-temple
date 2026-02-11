@@ -1,0 +1,43 @@
+{
+  "name": "claw-temple",
+  "version": "0.0.0",
+  "description": "Cyberpunk AI Orchestration Platform for OpenClaw",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "tsx watch src/index.ts",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build": "npm run build:backend && npm run build:frontend",
+    "build:backend": "tsc",
+    "build:frontend": "cd frontend && npm run build",
+    "start": "node dist/index.js",
+    "db:init": "tsx scripts/db:init.ts",
+    "test": "echo \"No tests specified\" && exit 0",
+    "commit": "cz"
+  },
+  "keywords": [
+    "orchestration",
+    "ai-agents",
+    "openclaw",
+    "cyberpunk",
+    "kanban"
+  ],
+  "author": "Dragos Popas",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/fs-extra": "^11.0.4",
+    "better-sqlite3": "^12.6.2",
+    "concurrently": "^8.2.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.3.0",
+    "winston": "^3.19.0"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.2.4",
+    "express": "^5.2.1",
+    "fs-extra": "^11.3.3",
+    "socket.io": "^4.8.3"
+  }
+}

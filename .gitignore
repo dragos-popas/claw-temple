@@ -1,0 +1,50 @@
+# Dependencies
+node_modules/
+dist/
+.pnp
+.pnp.js
+
+# Build outputs
+frontend/dist/
+frontend/.svelte-kit/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Database
+*.db
+*.sqlite
+data/
+
+# Worktrees
+worktrees/
+
+# Logs
+*.log
+logs/
+*.log.*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+coverage/
+.nyc_output/
+
+# Temporary
+tmp/
+temp/
+*.tmp
+
+# OpenClaw
+.agents/
