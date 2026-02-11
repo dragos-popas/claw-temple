@@ -1,0 +1,31 @@
+{
+  "apps": [
+    {
+      "name": "agent-1",
+      "script": "/home/dp420/.openclaw/workspace/claw-temple/agent-daemon.mjs",
+      "env": {
+        "POOL_ID": "3d198b3c-a7f7-42cc-b662-71aa5b19e7bc",
+        "AGENT_NAME": "🕷️ Scarlett",
+        "SOUL_ID": "crawlee-cpl4wwgt"
+      }
+    },
+    {
+      "name": "agent-2",
+      "script": "/home/dp420/.openclaw/workspace/claw-temple/agent-daemon.mjs",
+      "env": {
+        "POOL_ID": "3d198b3c-a7f7-42cc-b662-71aa5b19e7bc",
+        "AGENT_NAME": "🕷️ Scarlett-2",
+        "SOUL_ID": "crawlee-cpl4wwgt"
+      }
+    },
+    {
+      "name": "agent-3",
+      "script": "/home/dp420/.openclaw/workspace/claw-temple/agent-daemon.mjs",
+      "env": {
+        "POOL_ID": "3d198b3c-a7f7-42cc-b662-71aa5b19e7bc",
+        "AGENT_NAME": "🕷️ Scarlett-3",
+        "SOUL_ID": "crawlee-cpl4wwgt"
+      }
+    }
+  ]
+}

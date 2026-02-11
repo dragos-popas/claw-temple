@@ -3,7 +3,7 @@
 // ============================================================================
 
 import { getDb } from './sqlite.js';
-import { Task, TaskStatus, TaskCreateInput } from '../types/index.js';
+import { Task, TaskStatus, TaskCreateInput, TaskComment } from '../types/index.js';
 import { randomUUID } from 'crypto';
 
 export function createTask(input: TaskCreateInput): Task {
@@ -12,8 +12,8 @@ export function createTask(input: TaskCreateInput): Task {
   const now = new Date().toISOString();
 
   const stmt = db.prepare(`
-    INSERT INTO tasks (id, title, description, repo_url, template_id, pool_id, model, status, priority, metadata)
-    VALUES (?, ?, ?, ?, ?, ?, ?, 'TODO', ?, ?)
+    INSERT INTO tasks (id, title, description, repo_url, template_id, pool_id, model, status, priority, metadata, type, language)
+    VALUES (?, ?, ?, ?, ?, ?, ?, 'TODO', ?, ?, ?, ?)
   `);
 
   stmt.run(
@@ -25,7 +25,9 @@ export function createTask(input: TaskCreateInput): Task {
     input.poolId || null,
     input.model || null,
     input.priority || 0,
-    input.metadata ? JSON.stringify(input.metadata) : null
+    input.metadata ? JSON.stringify(input.metadata) : null,
+    input.type || 'scraping',
+    input.language || null
   );
 
   return getTaskById(id)!;
@@ -109,6 +111,26 @@ export function updateTask(id: string, updates: Partial<Task>): Task | null {
     params.push(updates.description);
   }
 
+  if (updates.assignedTo !== undefined) {
+    sets.push('assigned_to = ?');
+    params.push(updates.assignedTo);
+  }
+
+  if (updates.soulId !== undefined) {
+    sets.push('soul_id = ?');
+    params.push(updates.soulId);
+  }
+
+  if (updates.type !== undefined) {
+    sets.push('type = ?');
+    params.push(updates.type);
+  }
+
+  if (updates.language !== undefined) {
+    sets.push('language = ?');
+    params.push(updates.language);
+  }
+
   if (sets.length === 0) return existing;
 
   sets.push('updated_at = ?');
@@ -178,6 +200,66 @@ function mapRowToTask(row: Record<string, unknown>): Task {
     createdAt: row.created_at as string,
     updatedAt: row.updated_at as string,
     completedAt: row.completed_at as string | null,
-    metadata: row.metadata ? JSON.parse(row.metadata as string) : undefined
+    metadata: row.metadata ? JSON.parse(row.metadata as string) : undefined,
+    assignedTo: row.assigned_to as string | undefined,
+    soulId: row.soul_id as string | undefined,
+    type: (row.type as 'scraping' | 'general' | undefined) || 'scraping',
+    language: row.language as string | undefined
+  };
+}
+
+// ============================================================================
+// Task Comments / Activity Log
+// ============================================================================
+
+export function addTaskComment(taskId: string, agentName: string | null, content: string, type: TaskComment['type'] = 'comment'): TaskComment {
+  const db = getDb();
+  const id = randomUUID();
+  const now = new Date().toISOString();
+
+  const stmt = db.prepare(`
+    INSERT INTO task_comments (id, task_id, agent_name, content, type, created_at)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `);
+
+  stmt.run(id, taskId, agentName, content, type, now);
+
+  return {
+    id,
+    taskId,
+    agentName: agentName || undefined,
+    content,
+    type,
+    createdAt: now
+  };
+}
+
+export function getTaskComments(taskId: string): TaskComment[] {
+  const db = getDb();
+  const stmt = db.prepare(`
+    SELECT * FROM task_comments 
+    WHERE task_id = ? 
+    ORDER BY created_at ASC
+  `);
+  
+  const rows = stmt.all(taskId);
+  return rows.map(mapRowToComment);
+}
+
+export function deleteTaskComment(commentId: string): boolean {
+  const db = getDb();
+  const stmt = db.prepare('DELETE FROM task_comments WHERE id = ?');
+  const result = stmt.run(commentId);
+  return (result.changes as number) > 0;
+}
+
+function mapRowToComment(row: Record<string, unknown>): TaskComment {
+  return {
+    id: row.id as string,
+    taskId: row.task_id as string,
+    agentName: row.agent_name as string | undefined,
+    content: row.content as string,
+    type: row.type as TaskComment['type'],
+    createdAt: row.created_at as string
   };
 }

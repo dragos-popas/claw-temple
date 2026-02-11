@@ -8,6 +8,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Production-Ready Task Queue System** using Dragonfly (Redis-compatible)
+  - Priority-based task scheduling
+  - Dead letter queue for failed tasks
+  - Automatic retry with exponential backoff
+  - Queue pause/resume functionality
+- **Task Processor Service** for background task execution
+  - Automatic task lifecycle management (BACKLOG → DEV → QA → DONE)
+  - Status updates and comments on tickets
+  - Agent assignment tracking
+- **3 Hello World Test Tasks** (Python, TypeScript, Go)
+  - End-to-end production testing
+  - Full task lifecycle verification
+- **GitHub Repository Setup** with Commitizen configuration
+- **AGENTS.md** documentation for future AI developers
+- Dragonfly database service for high-performance queuing
+
+### Changed
+- Migrated from polling-based task processing to event-driven queue system
+- Enhanced observability with real-time status updates
+- Improved task assignment with agent tracking
+
+### Technical
+- Dragonfly (Redis alternative) for task queue
+- ioredis for Redis-compatible operations
+- Service-oriented architecture (task-queue, task-processor)
+- SystemD service files for production deployment
+
+## [0.0.1] - 2026-02-11
+
+### Added
 - Initial project structure
 - REST API backend with Express + TypeScript
 - SQLite database layer

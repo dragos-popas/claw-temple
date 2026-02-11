@@ -3,8 +3,8 @@
 // ============================================================================
 
 import { Router } from 'express';
-import { createTask, getAllTasks, getTaskById, updateTask, moveTask, deleteTask, getTaskCountByStatus } from '../stores/taskStore.js';
-import { TaskCreateInput, TaskStatus } from '../types/index.js';
+import { createTask, getAllTasks, getTaskById, updateTask, moveTask, deleteTask, getTaskCountByStatus, getTaskComments, addTaskComment } from '../../stores/taskStore.js';
+import { TaskCreateInput, TaskStatus } from '../../types/index.js';
 
 export const tasksRouter = Router();
 
@@ -127,4 +127,37 @@ tasksRouter.delete('/:id', (req, res) => {
   io?.emit('task:deleted', { taskId: req.params.id });
 
   res.status(204).send();
+});
+
+// GET task comments
+tasksRouter.get('/:id/comments', (req, res) => {
+  const task = getTaskById(req.params.id);
+  if (!task) {
+    return res.status(404).json({ error: 'Task not found' });
+  }
+
+  const comments = getTaskComments(req.params.id);
+  res.json(comments);
+});
+
+// POST add comment to task
+tasksRouter.post('/:id/comments', (req, res) => {
+  const task = getTaskById(req.params.id);
+  if (!task) {
+    return res.status(404).json({ error: 'Task not found' });
+  }
+
+  const { agentName, content, type } = req.body;
+  
+  if (!content) {
+    return res.status(400).json({ error: 'Content is required' });
+  }
+
+  const comment = addTaskComment(req.params.id, agentName || null, content, type || 'comment');
+  
+  // Emit socket event
+  const io = req.app.get('io');
+  io?.emit('task:comment', { taskId: req.params.id, comment });
+
+  res.status(201).json(comment);
 });

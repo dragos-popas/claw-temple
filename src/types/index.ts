@@ -18,6 +18,19 @@ export interface Task {
   updatedAt: string;
   completedAt?: string;
   metadata?: Record<string, unknown>;
+  assignedTo?: string;
+  soulId?: string;
+  type?: 'scraping' | 'general';
+  language?: string;
+}
+
+export interface TaskComment {
+  id: string;
+  taskId: string;
+  agentName?: string;
+  content: string;
+  type: 'comment' | 'update' | 'finding' | 'error' | 'completion';
+  createdAt: string;
 }
 
 export type TaskStatus = 'TODO' | 'RESEARCH' | 'DEV' | 'QA' | 'DONE';
@@ -31,6 +44,8 @@ export interface TaskCreateInput {
   model?: string;
   priority?: number;
   metadata?: Record<string, unknown>;
+  type?: 'scraping' | 'general';
+  language?: string;
 }
 
 export interface AgentPool {

@@ -6,9 +6,10 @@ interface TaskCardProps {
   task: Task;
   pool?: AgentPool;
   isDragging?: boolean;
+  onClick?: () => void;
 }
 
-export function TaskCard({ task, pool, isDragging }: TaskCardProps) {
+export function TaskCard({ task, pool, isDragging, onClick }: TaskCardProps) {
   const statusColors: Record<string, string> = {
     TODO: 'bg-gray-500',
     RESEARCH: 'bg-cyber-purple',
@@ -19,7 +20,8 @@ export function TaskCard({ task, pool, isDragging }: TaskCardProps) {
 
   return (
     <div 
-      className={`cyber-task-card ${isDragging ? 'shadow-neon-pink scale-105' : ''}`}
+      className={`cyber-task-card cursor-pointer hover:border-cyber-cyan transition-all ${isDragging ? 'shadow-neon-pink scale-105' : ''}`}
+      onClick={onClick}
     >
       {/* Header */}
       <div className="flex items-start justify-between mb-2">

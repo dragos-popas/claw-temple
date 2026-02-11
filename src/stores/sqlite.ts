@@ -61,7 +61,23 @@ function createTables() {
       created_at TEXT DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
       completed_at TEXT,
-      metadata TEXT
+      metadata TEXT,
+      assigned_to TEXT,
+      soul_id TEXT,
+      type TEXT DEFAULT 'scraping'
+    )
+  `);
+
+  // Comments table for activity log
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS task_comments (
+      id TEXT PRIMARY KEY,
+      task_id TEXT NOT NULL,
+      agent_name TEXT,
+      content TEXT NOT NULL,
+      type TEXT DEFAULT 'comment',
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
     )
   `);
 
@@ -149,10 +165,41 @@ function createTables() {
   // Create indexes
   db.exec(`CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status)`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_tasks_pool ON tasks(pool_id)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_tasks_assigned ON tasks(assigned_to)`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_agent_instances_status ON agent_instances(status)`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_analytics_events_timestamp ON analytics_events(timestamp)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_task_comments_task ON task_comments(task_id)`);
 
   logger.info('Database tables created');
+  
+  // Run migrations for existing databases
+  runMigrations(db);
+}
+
+function runMigrations(db: Database.Database) {
+  // Migration: Add assigned_to column if not exists
+  try {
+    db.exec(`ALTER TABLE tasks ADD COLUMN assigned_to TEXT`);
+    logger.info('Migration: Added assigned_to column');
+  } catch (e) {
+    // Column already exists
+  }
+  
+  // Migration: Add soul_id column if not exists
+  try {
+    db.exec(`ALTER TABLE tasks ADD COLUMN soul_id TEXT`);
+    logger.info('Migration: Added soul_id column');
+  } catch (e) {
+    // Column already exists
+  }
+  
+  // Migration: Add type column if not exists
+  try {
+    db.exec(`ALTER TABLE tasks ADD COLUMN type TEXT DEFAULT 'scraping'`);
+    logger.info('Migration: Added type column');
+  } catch (e) {
+    // Column already exists
+  }
 }
 
 export function closeDatabase() {

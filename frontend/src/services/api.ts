@@ -1,5 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
-import { Task, TaskStatus, AgentPool } from '../types';
+import { Task, TaskStatus, AgentPool, TaskComment } from '../types';
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
@@ -51,6 +51,16 @@ class ApiService {
 
   async getTaskCounts(): Promise<Record<TaskStatus, number>> {
     const { data } = await this.client.get('/tasks/counts');
+    return data;
+  }
+
+  async getTaskComments(taskId: string): Promise<TaskComment[]> {
+    const { data } = await this.client.get(`/tasks/${taskId}/comments`);
+    return data;
+  }
+
+  async addTaskComment(taskId: string, comment: { agentName?: string; content: string; type?: string }): Promise<TaskComment> {
+    const { data } = await this.client.post(`/tasks/${taskId}/comments`, comment);
     return data;
   }
 

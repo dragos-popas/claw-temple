@@ -7,9 +7,10 @@ import { KanbanBoard } from './components/KanbanBoard';
 import { AgentPoolManager } from './components/AgentPool';
 import { Analytics } from './components/Analytics';
 import { Settings } from './components/Settings';
+import { SoulManager } from './components/SoulManager';
 import { GlitchText } from './components/GlitchText';
 
-type Tab = 'kanban' | 'agents' | 'analytics' | 'settings';
+type Tab = 'kanban' | 'agents' | 'souls' | 'analytics' | 'settings';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('kanban');
@@ -21,6 +22,7 @@ export default function App() {
   const navItems = [
     { id: 'kanban', label: '📋 Kanban', icon: '📋' },
     { id: 'agents', label: '🤖 Agents', icon: '🤖' },
+    { id: 'souls', label: '🧠 Souls', icon: '🧠' },
     { id: 'analytics', label: '📊 Analytics', icon: '📊' },
     { id: 'settings', label: '⚙️ Settings', icon: '⚙️' }
   ];
@@ -28,14 +30,14 @@ export default function App() {
   return (
     <div className="min-h-screen bg-cyber-black flex">
       {/* Sidebar */}
-      <aside className="w-64 bg-cyber-dark border-r border-cyber-gray flex flex-col">
+      <aside className="w-64 bg-cyber-dark border-r border-cyber-gray flex flex-col shrink-0">
         {/* Logo */}
         <div className="p-6 border-b border-cyber-gray">
           <GlitchText 
             text="🦀 CLAW-TEMPLE" 
-            className="text-2xl font-display font-bold text-gradient-pink"
+            className="text-2xl font-display font-bold"
           />
-          <p className="text-xs text-gray-500 mt-1 font-mono">v0.0.0</p>
+          <p className="text-xs text-gray-500 mt-1 font-mono">v0.0.1</p>
         </div>
 
         {/* Navigation */}
@@ -100,6 +102,7 @@ export default function App() {
         <div className="p-6">
           {activeTab === 'kanban' && <KanbanBoard />}
           {activeTab === 'agents' && <AgentPoolManager />}
+          {activeTab === 'souls' && <SoulManager />}
           {activeTab === 'analytics' && <Analytics data={analytics} />}
           {activeTab === 'settings' && <Settings />}
         </div>
