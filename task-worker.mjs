@@ -64,11 +64,15 @@ async function fetchJson(url, options = {}) {
   });
 }
 
-async function getTasksInResearch() {
+async function getTasksInWorkflow() {
   try {
-    const tasks = await fetchJson(`${API_URL}/api/tasks?status=RESEARCH`);
-    // Filter tasks that have a soul assigned but not yet picked up by worker
-    return tasks.filter(t => t.soulId && !t.assignedTo);
+    // Check both TODO and RESEARCH status for workflow tasks
+    const todoTasks = await fetchJson(`${API_URL}/api/tasks?status=TODO`);
+    const researchTasks = await fetchJson(`${API_URL}/api/tasks?status=RESEARCH`);
+    
+    // Combine and filter: must have soul assigned but not yet picked up by worker
+    const allTasks = [...todoTasks, ...researchTasks];
+    return allTasks.filter(t => t.soulId && !t.assignedTo);
   } catch (err) {
     console.error('[Worker] Error fetching tasks:', err.message);
     return [];
@@ -259,7 +263,7 @@ async function startWorker() {
 
   while (true) {
     try {
-      const tasks = await getTasksInResearch();
+      const tasks = await getTasksInWorkflow();
 
       for (const task of tasks) {
         const taskType = task.type || 'scraping';

@@ -109,25 +109,25 @@ export function KanbanBoard() {
       </div>
 
       <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="flex gap-4 overflow-x-auto pb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex gap-3 lg:gap-4 overflow-x-auto pb-4">
           {COLUMNS.map(column => (
             <Droppable key={column.id} droppableId={column.id}>
               {(provided, snapshot) => (
                 <div
                   ref={provided.innerRef}
                   {...provided.droppableProps}
-                  className={`cyber-column min-w-[280px] flex-1 ${
+                  className={`cyber-column min-w-[220px] sm:min-w-[280px] flex-1 ${
                     snapshot.isDraggingOver ? 'border-cyber-pink bg-cyber-gray/80' : ''
                   }`}
                 >
                   <div className={`cyber-column-header border-l-4 pl-3 ${column.color}`}>
-                    <h3 className="font-display font-semibold">{column.title}</h3>
-                    <span className="cyber-badge-gray">
+                    <h3 className="font-display font-semibold text-sm sm:text-base">{column.title}</h3>
+                    <span className="cyber-badge-gray text-xs">
                       {getTasksByColumn(column.id).length}
                     </span>
                   </div>
 
-                  <div className="space-y-3 mt-3">
+                  <div className="space-y-2 sm:space-y-3 mt-2 sm:mt-3">
                     {getTasksByColumn(column.id).map((task, index) => (
                       <Draggable key={task.id} draggableId={task.id} index={index}>
                         {(provided, snapshot) => (

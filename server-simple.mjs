@@ -11,6 +11,7 @@ import path from 'path';
 import fs from 'fs-extra';
 import { fileURLToPath } from 'url';
 import Database from 'better-sqlite3';
+import Redis from 'ioredis';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -26,6 +27,38 @@ const FRONTEND_DIST = path.join(PROJECT_ROOT, 'claw-temple/frontend/dist');
 const db = new Database(DB_PATH);
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
+
+// Dragonfly/Redis connection for task queue
+const redis = new Redis({
+  host: process.env.DRAGONFLY_HOST || 'localhost',
+  port: parseInt(process.env.DRAGONFLY_PORT || '6379'),
+  retryStrategy: (times) => {
+    return Math.min(times * 50, 2000);
+  }
+});
+
+// Queue keys for Dragonfly
+const QUEUE_KEYS = {
+  PENDING: 'task:pending',
+  PROCESSING: 'task:processing',
+  COMPLETED: 'task:completed',
+  FAILED: 'task:failed',
+  PAUSED: 'queue:paused'
+};
+
+// Track if Redis is connected
+let redisConnected = false;
+
+// Test Redis connection on startup
+redis.on('connect', () => {
+  redisConnected = true;
+  console.log('[Server] ✅ Dragonfly/Redis connected');
+});
+
+redis.on('error', (err) => {
+  redisConnected = false;
+  console.warn('[Server] ⚠️ Dragonfly/Redis error:', err.message);
+});
 
 // Create comments table if not exists
 db.prepare(`
@@ -234,7 +267,7 @@ app.get('/api/tasks', (req, res) => {
   res.json(tasks);
 });
 
-app.post('/api/tasks', (req, res) => {
+app.post('/api/tasks', async (req, res) => {
   const id = randomUUID();
   const now = new Date().toISOString();
   
@@ -281,6 +314,35 @@ app.post('/api/tasks', (req, res) => {
     soulId, initialStatus, req.body.priority || 0, req.body.metadata ? JSON.stringify(req.body.metadata) : null,
     taskType, language
   );
+
+  // Enqueue task to Dragonfly queue for processing
+  if (redisConnected) {
+    try {
+      const taskData = {
+        id,
+        title: req.body.title,
+        description: req.body.description || null,
+        type: taskType,
+        language: language,
+        priority: req.body.priority || 0,
+        metadata: req.body.metadata || null,
+        soulId: soulId
+      };
+      
+      // Store task data in Redis hash
+      await redis.hset(`task:data:${id}`, 'data', JSON.stringify(taskData));
+      
+      // Add to pending queue (sorted by priority, then timestamp)
+      const score = Date.now() + (req.body.priority || 0) * 1000000;
+      await redis.zadd(QUEUE_KEYS.PENDING, score, id);
+      
+      console.log(`[Server] Task ${id} enqueued to Dragonfly queue`);
+    } catch (err) {
+      console.error('[Server] Failed to enqueue task to Dragonfly:', err.message);
+    }
+  } else {
+    console.warn('[Server] Dragonfly not connected, task queued only in database');
+  }
   
   const row = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
   const task = {
@@ -574,7 +636,7 @@ app.get('/api/templates', (req, res) => {
 db.exec(`
   CREATE TABLE IF NOT EXISTS agent_souls (
     id TEXT PRIMARY KEY,
-    pool_id TEXT NOT NULL,
+    pool_id TEXT,
     name TEXT NOT NULL,
     description TEXT,
     soul TEXT NOT NULL,         -- Core personality (SOUL.md style)
@@ -756,6 +818,106 @@ app.get('/api/analytics/dashboard', (req, res) => {
   });
 });
 
+// Queue status (Dragonfly)
+app.get('/api/queue/status', async (req, res) => {
+  try {
+    if (!redisConnected) {
+      return res.json({
+        pending: 0,
+        processing: 0,
+        completed: 0,
+        failed: 0,
+        isPaused: false,
+        redisConnected: false
+      });
+    }
+
+    const [pending, processing, completed, failed, isPaused] = await Promise.all([
+      redis.zcard(QUEUE_KEYS.PENDING),
+      redis.zcard(QUEUE_KEYS.PROCESSING),
+      redis.zcard(QUEUE_KEYS.COMPLETED),
+      redis.zcard(QUEUE_KEYS.FAILED),
+      redis.get(QUEUE_KEYS.PAUSED)
+    ]);
+
+    res.json({
+      pending,
+      processing,
+      completed,
+      failed,
+      isPaused: isPaused === 'true',
+      redisConnected: true
+    });
+  } catch (error) {
+    console.error('[Server] Error getting queue status:', error);
+    res.status(500).json({ error: 'Failed to get queue status' });
+  }
+});
+
+// Pause queue processing
+app.post('/api/queue/pause', async (req, res) => {
+  try {
+    if (!redisConnected) {
+      return res.status(503).json({ error: 'Dragonfly not connected' });
+    }
+    await redis.set(QUEUE_KEYS.PAUSED, 'true');
+    res.json({ message: 'Queue paused' });
+  } catch (error) {
+    console.error('[Server] Error pausing queue:', error);
+    res.status(500).json({ error: 'Failed to pause queue' });
+  }
+});
+
+// Resume queue processing
+app.post('/api/queue/resume', async (req, res) => {
+  try {
+    if (!redisConnected) {
+      return res.status(503).json({ error: 'Dragonfly not connected' });
+    }
+    await redis.set(QUEUE_KEYS.PAUSED, 'false');
+    res.json({ message: 'Queue resumed' });
+  } catch (error) {
+    console.error('[Server] Error resuming queue:', error);
+    res.status(500).json({ error: 'Failed to resume queue' });
+  }
+});
+
+// Retry a failed task
+app.post('/api/queue/retry/:taskId', async (req, res) => {
+  try {
+    if (!redisConnected) {
+      return res.status(503).json({ error: 'Dragonfly not connected' });
+    }
+    
+    const taskId = req.params.taskId;
+    
+    // Remove from failed
+    await redis.zrem(QUEUE_KEYS.FAILED, taskId);
+    
+    // Get task data
+    const taskData = await redis.hget(`task:data:${taskId}`, 'data');
+    if (!taskData) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+    
+    const task = JSON.parse(taskData);
+    task.status = 'PENDING';
+    task.retryCount = 0;
+    task.error = null;
+    task.failedAt = null;
+    await redis.hset(`task:data:${taskId}`, 'data', JSON.stringify(task));
+    
+    // Add to pending queue
+    const score = Date.now() + (task.priority || 0) * 1000000;
+    await redis.zadd(QUEUE_KEYS.PENDING, score, taskId);
+    
+    res.json({ message: 'Task retried', taskId });
+  } catch (error) {
+    console.error('[Server] Error retrying task:', error);
+    res.status(500).json({ error: 'Failed to retry task' });
+  }
+});
+
 // OpenRouter API Key (from environment or fallback)
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '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';
 
@@ -914,12 +1076,17 @@ SCRAPY-SPECIFIC PATTERNS:
 - Don't forget to close() the spider properly for resource cleanup`;
 
   try {
+    // Get the first available pool_id (or create one if none exists)
+    const poolRow = db.prepare('SELECT id FROM agent_pools LIMIT 1').get();
+    const poolId = poolRow ? poolRow.id : null;
+    
     // Insert Crawlee Soul
     db.prepare(`
       INSERT INTO agent_souls (id, pool_id, name, description, soul, identity, bible, model, temperature)
-      VALUES (?, NULL, ?, ?, ?, ?, ?, 'deepseek/deepseek-r1', 0.3)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 'deepseek/deepseek-r1', 0.3)
     `).run(
       crawleeId,
+      poolId,
       '🕷️ Crawlee Specialist',
       'Expert Crawlee framework scraper with Cheerio/Playwright/Puppeteer support',
       crawleeSoul,
@@ -930,9 +1097,10 @@ SCRAPY-SPECIFIC PATTERNS:
     // Insert Scrapy Soul
     db.prepare(`
       INSERT INTO agent_souls (id, pool_id, name, description, soul, identity, bible, model, temperature)
-      VALUES (?, NULL, ?, ?, ?, ?, ?, 'deepseek/deepseek-r1', 0.3)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 'deepseek/deepseek-r1', 0.3)
     `).run(
       scrapyId,
+      poolId,
       '🕸️ Scrapy Veteran',
       'Enterprise Scrapy framework scraper with XPath and pipeline expertise',
       scrapySoul,

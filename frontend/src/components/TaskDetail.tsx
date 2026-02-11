@@ -39,7 +39,7 @@ export function TaskDetail({ task, pool, onClose, onUpdate }: TaskDetailProps) {
           content: `Task created: ${task.description || 'No description'}`,
           createdAt: task.createdAt,
           type: 'update',
-          tags: [task.metadata.framework]
+          tags: task.metadata?.framework ? [task.metadata.framework] : []
         }
       ];
       setComments(initialComments);
@@ -171,24 +171,34 @@ export function TaskDetail({ task, pool, onClose, onUpdate }: TaskDetailProps) {
             </div>
 
             {/* Metadata */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 pt-4 border-t border-cyber-gray">
-              <div>
-                <label className="text-xs text-gray-500">Framework</label>
-                <p className="text-cyber-cyan">{task.metadata.framework === 'crawlee' ? '🕷️ Crawlee' : '🐍 Scrapy'}</p>
+            {task.metadata && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 pt-4 border-t border-cyber-gray">
+                {task.metadata.framework && (
+                  <div>
+                    <label className="text-xs text-gray-500">Framework</label>
+                    <p className="text-cyber-cyan">{task.metadata.framework === 'crawlee' ? '🕷️ Crawlee' : '🐍 Scrapy'}</p>
+                  </div>
+                )}
+                {task.metadata.maxRequests !== undefined && (
+                  <div>
+                    <label className="text-xs text-gray-500">Max Requests</label>
+                    <p className="text-cyber-yellow">{task.metadata.maxRequests === 0 ? '∞ Unlimited' : task.metadata.maxRequests}</p>
+                  </div>
+                )}
+                {task.metadata.maxDevCycles !== undefined && (
+                  <div>
+                    <label className="text-xs text-gray-500">Max Cycles</label>
+                    <p className="text-cyber-pink">{task.metadata.maxDevCycles === 0 ? '∞ Unlimited' : task.metadata.maxDevCycles}</p>
+                  </div>
+                )}
+                {task.metadata.outputFormat && (
+                  <div>
+                    <label className="text-xs text-gray-500">Output Format</label>
+                    <p className="text-white uppercase">{task.metadata.outputFormat}</p>
+                  </div>
+                )}
               </div>
-              <div>
-                <label className="text-xs text-gray-500">Max Requests</label>
-                <p className="text-cyber-yellow">{task.metadata.maxRequests === 0 ? '∞ Unlimited' : task.metadata.maxRequests}</p>
-              </div>
-              <div>
-                <label className="text-xs text-gray-500">Max Cycles</label>
-                <p className="text-cyber-pink">{task.metadata.maxDevCycles === 0 ? '∞ Unlimited' : task.metadata.maxDevCycles}</p>
-              </div>
-              <div>
-                <label className="text-xs text-gray-500">Output Format</label>
-                <p className="text-white uppercase">{task.metadata.outputFormat}</p>
-              </div>
-            </div>
+            )}
 
             {/* Status Flow */}
             <div className="mt-4 pt-4 border-t border-cyber-gray">

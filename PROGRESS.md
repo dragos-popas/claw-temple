@@ -27,7 +27,29 @@
 - Server crashes frequently
 - Setup PM2 for auto-restart
 
-## Files Modified
+### 4. Dragonfly Queue Integration (NEW)
+- **task-worker-dragonfly.mjs** - Full Dragonfly-based queue worker
+- **server-simple.mjs** - Updated to enqueue tasks to Dragonfly on creation
+- **New API endpoints:**
+  - `GET /api/queue/status` - View Dragonfly queue stats
+  - `POST /api/queue/pause` - Pause queue processing
+  - `POST /api/queue/resume` - Resume queue processing
+  - `POST /api/queue/retry/:taskId` - Retry failed task
+
+### 5. Enhanced Task Worker (NEW - NEEDS TESTING)
+- Created `task-worker-enhanced.mjs` for full Kanban workflow
+- General programming tasks now flow through: TODO → RESEARCH → DEV → QA → DONE
+- Realistic developer comments from 5 personas at each step
+- See `task-worker-enhanced-usage.md` for details
+
+### 6. UI Bugs Fixed (2026-02-11 22:26)
+- **Bug 1: No Agent Pools** ✅ FIXED - Created "General Developer" pool
+- **Bug 2: No Souls** ✅ FIXED - Seeded Crawlee and Scrapy souls
+- **Bug 3: UI Goes Black on Card Click** ✅ FIXED - Added null metadata checks in TaskDetail
+- **Frontend**: Rebuilt with mobile-responsive updates
+- **Database**: Fixed pool_id constraints and heartbeats table
+
+## Files Modified/Added
 
 ### Frontend
 - frontend/src/App.tsx - Added Souls tab
@@ -37,32 +59,78 @@
 - frontend/src/components/SoulEditor.tsx - Soul editor modal
 
 ### Backend
-- server-simple.mjs - Model caching, souls endpoints, seed-defaults
+- server-simple.mjs - Model caching, souls endpoints, seed-defaults + **Dragonfly queue integration**
+- task-worker.mjs - Updated to pick up tasks from TODO status
+- **task-worker-dragonfly.mjs (NEW)** - Dragonfly queue worker with full workflow
+- **task-worker-enhanced.mjs (NEW)** - Enhanced workflow with realistic dev comments
+- scripts/create-hello-world-tasks.mjs - Updated to create tasks in TODO (not BACKLOG)
+- **task-worker-enhanced-usage.md (NEW)** - Usage guide for enhanced worker
+- **task-worker-dragonfly-usage.md (NEW)** - Usage guide for Dragonfly worker
+
+### Documentation
+- **CONTINUATION_PLAN.md (NEW)** - Detailed resume plan
+- **README_FIRST.md (NEW)** - Quick reference guide
 
 ## Quick Commands
 
+### Setup Dragonfly
 ```bash
-# Start server with PM2
+# Start Dragonfly (Docker)
+docker run --name dragonfly -p 6379:6379 -d dragonflydb/dragonfly
+
+# Verify Dragonfly
+redis-cli ping
+```
+
+### Start Services
+```bash
 cd /home/dp420/.openclaw/workspace/claw-temple
+
+# Start server (enqueues tasks to Dragonfly)
+node server-simple.mjs
+
+# Start Dragonfly worker (processes from Dragonfly queue)
+node task-worker-dragonfly.mjs
+
+# Or use HTTP polling worker (legacy)
+node task-worker.mjs
+```
+
+### With PM2
+```bash
 pm2 start server-simple.mjs --name claw-temple
+pm2 start task-worker-dragonfly.mjs --name claw-temple-worker
 
-# Check status
 pm2 status
-
-# View logs
 pm2 logs claw-temple
+pm2 logs claw-temple-worker
+```
 
-# Restart
-pm2 restart claw-temple
+### Monitor Queue
+```bash
+# Check queue status
+curl http://localhost:3000/api/queue/status
 
-# Rebuild frontend (after any UI changes)
-cd frontend && npm run build
+# Pause/Resume queue
+curl -X POST http://localhost:3000/api/queue/pause
+curl -X POST http://localhost:3000/api/queue/resume
 
-# Seed default souls
-curl -X POST http://localhost:3000/api/agents/souls/seed-defaults
+# Retry failed task
+curl -X POST http://localhost:3000/api/queue/retry/<task-id>
+```
 
-# Test API
-curl http://localhost:3000/api/models | python3 -c "import json,sys; d=json.load(sys.stdin); print(f'Models: {len(d)}')"
+### Test API
+```bash
+# Create test task
+curl -X POST http://localhost:3000/api/tasks \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Test","type":"general","language":"Python","priority":5}'
+
+# Check task comments
+curl http://localhost:3000/api/tasks/<task-id>/comments
+
+# View all tasks
+curl http://localhost:3000/api/tasks | python3 -m json.tool
 ```
 
 ## API Endpoints

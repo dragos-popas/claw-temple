@@ -5,8 +5,6 @@
  * Creates tasks in BACKLOG that will be picked up by the task processor
  */
 
-import fetch from 'node-fetch';
-
 const API_URL = 'http://localhost:3000/api';
 
 const helloWorldTasks = [
@@ -41,11 +39,12 @@ async function createTask(task) {
       body: JSON.stringify({
         title: task.title,
         description: task.description,
-        status: 'BACKLOG',
         priority: task.priority,
         type: task.type,
         language: task.language,
         template: 'general-programming'
+        // Note: status is auto-set by server based on task type
+        // General tasks will start in TODO status
       })
     });
 
