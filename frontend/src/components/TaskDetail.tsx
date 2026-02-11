@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Task, AgentPool } from '../types';
+import { api } from '../services/api';
 
 interface TaskDetailProps {
   task: Task;
@@ -26,59 +27,125 @@ export function TaskDetail({ task, pool, onClose, onUpdate }: TaskDetailProps) {
 
   // Load comments from localStorage or create mock ones
   useEffect(() => {
-    const stored = localStorage.getItem(`task_${task.id}_comments`);
-    if (stored) {
-      setComments(JSON.parse(stored));
-    } else {
-      // Initial comment based on task status
-      const initialComments: TaskComment[] = [
-        {
-          id: `init-${Date.now()}`,
-          taskId: task.id,
-          agentName: 'System',
-          content: `Task created: ${task.description || 'No description'}`,
-          createdAt: task.createdAt,
-          type: 'update',
-          tags: task.metadata?.framework ? [task.metadata.framework] : []
+    const loadComments = async () => {
+      try {
+        const serverComments = await api.getTaskComments(task.id);
+        // Map server comments to TaskComment type
+        const mapped = serverComments.map(c => ({
+          id: c.id,
+          taskId: c.taskId,
+          agentName: c.author,
+          content: c.content,
+          createdAt: c.createdAt,
+          type: (c.type || 'comment') as 'comment' | 'finding' | 'update' | 'tag',
+          tags: c.tags
+        }));
+        setComments(mapped);
+        // Store in localStorage for offline access
+        localStorage.setItem(`task_${task.id}_comments`, JSON.stringify(mapped));
+      } catch (err) {
+        console.error('Failed to load comments:', err);
+        // Fallback to localStorage
+        const stored = localStorage.getItem(`task_${task.id}_comments`);
+        if (stored) {
+          setComments(JSON.parse(stored));
+        } else {
+          // Initial comment based on task status
+          const initialComments: TaskComment[] = [
+            {
+              id: `init-${Date.now()}`,
+              taskId: task.id,
+              agentName: 'System',
+              content: `Task created: ${task.description || 'No description'}`,
+              createdAt: task.createdAt,
+              type: 'update',
+              tags: task.metadata?.framework ? [task.metadata.framework] : []
+            }
+          ];
+          setComments(initialComments);
+          localStorage.setItem(`task_${task.id}_comments`, JSON.stringify(initialComments));
         }
-      ];
-      setComments(initialComments);
-      localStorage.setItem(`task_${task.id}_comments`, JSON.stringify(initialComments));
-    }
+      }
+    };
+    loadComments();
   }, [task]);
 
-  const addComment = () => {
+  const addComment = async () => {
     if (!newComment.trim()) return;
 
-    const comment: TaskComment = {
-      id: `comment-${Date.now()}`,
-      taskId: task.id,
-      agentName: 'Current Agent',
-      content: newComment,
-      createdAt: new Date().toISOString(),
-      type: 'comment'
-    };
-
-    const updated = [...comments, comment];
-    setComments(updated);
-    localStorage.setItem(`task_${task.id}_comments`, JSON.stringify(updated));
-    setNewComment('');
+    try {
+      const serverComment = await api.addTaskComment(task.id, {
+        content: newComment,
+        agentName: 'Current Agent',
+        type: 'comment'
+      });
+      const comment: TaskComment = {
+        id: serverComment.id,
+        taskId: serverComment.taskId,
+        agentName: serverComment.author,
+        content: serverComment.content,
+        createdAt: serverComment.createdAt,
+        type: (serverComment.type || 'comment') as 'comment' | 'finding' | 'update' | 'tag',
+        tags: serverComment.tags
+      };
+      const updated = [...comments, comment];
+      setComments(updated);
+      localStorage.setItem(`task_${task.id}_comments`, JSON.stringify(updated));
+      setNewComment('');
+    } catch (err) {
+      console.error('Failed to add comment:', err);
+      // Fallback to local
+      const comment: TaskComment = {
+        id: `comment-${Date.now()}`,
+        taskId: task.id,
+        agentName: 'Current Agent',
+        content: newComment,
+        createdAt: new Date().toISOString(),
+        type: 'comment'
+      };
+      const updated = [...comments, comment];
+      setComments(updated);
+      localStorage.setItem(`task_${task.id}_comments`, JSON.stringify(updated));
+      setNewComment('');
+    }
   };
 
-  const addFinding = (finding: string) => {
-    const comment: TaskComment = {
-      id: `finding-${Date.now()}`,
-      taskId: task.id,
-      agentName: 'Current Agent',
-      content: finding,
-      createdAt: new Date().toISOString(),
-      type: 'finding',
-      tags: ['finding']
-    };
-
-    const updated = [...comments, comment];
-    setComments(updated);
-    localStorage.setItem(`task_${task.id}_comments`, JSON.stringify(updated));
+  const addFinding = async (finding: string) => {
+    try {
+      const serverComment = await api.addTaskComment(task.id, {
+        content: finding,
+        agentName: 'Current Agent',
+        type: 'finding',
+        tags: ['finding']
+      });
+      const comment: TaskComment = {
+        id: serverComment.id,
+        taskId: serverComment.taskId,
+        agentName: serverComment.author,
+        content: serverComment.content,
+        createdAt: serverComment.createdAt,
+        type: (serverComment.type || 'finding') as 'comment' | 'finding' | 'update' | 'tag',
+        tags: serverComment.tags
+      };
+      const updated = [...comments, comment];
+      setComments(updated);
+      localStorage.setItem(`task_${task.id}_comments`, JSON.stringify(updated));
+    } catch (err) {
+      console.error('Failed to add finding:', err);
+      // Fallback to local
+      const comment: TaskComment = {
+        id: `finding-${Date.now()}`,
+        taskId: task.id,
+        agentName: 'Current Agent',
+        content: finding,
+        createdAt: new Date().toISOString(),
+        type: 'finding',
+        tags: ['finding']
+      };
+      const updated = [...comments, comment];
+      setComments(updated);
+      localStorage.setItem(`task_${task.id}_comments`, JSON.stringify(updated));
+    }
   };
 
   const handleStatusChange = (newStatus: string) => {
